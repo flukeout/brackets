@@ -496,6 +496,9 @@ module.exports = function (grunt) {
                 handler: 'fastest'
             }],
             stripPrefix: 'dist/',
+            importScripts: [
+                "bramble-live-dev-cache.js"
+            ],
             ignoreUrlParametersMatching: [/./]
         };
 

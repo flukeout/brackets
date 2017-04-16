@@ -38,6 +38,7 @@ define(function (require, exports, module) {
 
     //Returns a pre-generated blob url based on path
     HTMLServer.prototype.pathToUrl = function(path) {
+        return path;
         return BlobUtils.getUrl(path);
     };
     //Returns a path based on blob url or filepath.  Returns null for any other URL.  
@@ -119,7 +120,7 @@ define(function (require, exports, module) {
                     callback(err);
                     return;
                 }
-                callback(null, BlobUtils.createURL(path, css, "text/css"));
+                BlobUtils.createURL(path, css, "text/css", callback);
             });
         }
 
@@ -130,7 +131,14 @@ define(function (require, exports, module) {
                     return;
                 }
                 // We either serve raw HTML or a Blob URL depending on browser compatibility.
-                callback(null, _shouldUseBlobURL ? BlobUtils.createURL(path, html, "text/html") : html);
+                if(!_shouldUseBlobURL) {
+                    callback(null, html);
+                    return;
+                }
+
+                return BlobUtils.createURL(path, html, "text/html", function(err) {
+                    callback(err, BlobUtils.getUrl(path));
+                });
             });
         }
 

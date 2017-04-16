@@ -204,7 +204,7 @@ define(function (require, exports, module) {
         var currentDoc = LiveDevMultiBrowser._getCurrentLiveDoc();
         var currentPath = path || (currentDoc && currentDoc.doc.file.fullPath);
 
-        return '<base href="' + window.location.href + '">\n' +
+        return '<base href="' + BlobUtils.getBaseUrl() + '">\n' +
             "<script>\n" + PostMessageTransportRemote + "</script>\n" +
             "<script>\n" + XHRShim + "</script>\n" +
             MouseManager.getRemoteScript(currentPath) +

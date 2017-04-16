@@ -31,12 +31,12 @@ define(function (require, exports, module) {
 
             // If we get a Blob URL (i.e., not the filename back) and get it
             // synchronously, run the callback and yield to main thread.
-            if(cachedUrl !== filename) {
-                setTimeout(function() {
-                    callback(null, cachedUrl);
-                }, 0);
-                return;
-            }
+//            if(cachedUrl !== filename) {
+//                setTimeout(function() {
+//                    callback(null, cachedUrl);
+//                }, 0);
+//                return;
+//            }
 
             fs.readFile(decodedFilename, null, function(err, data) {
                 if(err) {
@@ -45,8 +45,13 @@ define(function (require, exports, module) {
                 }
 
                 var mime = Content.mimeFromExt(Path.extname(decodedFilename));
-                var url = BlobUtils.createURL(filename, data, mime);
-                callback(null, url);
+                BlobUtils.createURL(filename, data, mime, function(err, url) {
+                    if(err) {
+                        callback(err);
+                        return;
+                    }
+                    callback(null, url);
+                });
             });
         }
 
@@ -83,6 +88,8 @@ define(function (require, exports, module) {
             });
         }
 
-        _load(StartupState.project("root"), callback);
+        BlobUtils.init(function() {
+            _load(StartupState.project("root"), callback);
+        });
     };
 });

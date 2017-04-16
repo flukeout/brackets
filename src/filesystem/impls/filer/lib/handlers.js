@@ -34,12 +34,10 @@ define(function (require, exports, module) {
                         callback(err);
                         return;
                     }
-                    BlobUtils.createURL(path, css, mimeType);
-                    callback();
+                    BlobUtils.createURL(path, css, mimeType, callback);
                 });
             } else {
-                BlobUtils.createURL(path, data, mimeType);
-                callback();
+                BlobUtils.createURL(path, data, mimeType, callback);
             }
         }
 
