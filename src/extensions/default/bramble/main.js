@@ -28,7 +28,7 @@ define(function (require, exports, module) {
         PostMessageTransport = require("lib/PostMessageTransport"),
         Path                 = brackets.getModule("filesystem/impls/filer/BracketsFiler").Path,
         FileSystemCache      = brackets.getModule("filesystem/impls/filer/FileSystemCache"),
-        BlobUtils            = brackets.getModule("filesystem/impls/filer/BlobUtils"),
+        UrlCache            = brackets.getModule("filesystem/impls/filer/UrlCache"),
         XHRHandler           = require("lib/xhr/XHRHandler"),
         Theme                = require("lib/Theme"),
         RemoteCommandHandler = require("lib/RemoteCommandHandler"),
@@ -47,7 +47,7 @@ define(function (require, exports, module) {
 
     function handleMessage(message) {
         var currentDocUrl = Browser.getBrowserIframe().src;
-        var currentDocPath = BlobUtils.getFilename(currentDocUrl);
+        var currentDocPath = UrlCache.getFilename(currentDocUrl);
         var currentDir = currentDocPath !== currentDocUrl ? Path.dirname(currentDocPath) : currentDocPath;
         var requestedPath;
 

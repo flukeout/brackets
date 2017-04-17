@@ -14,7 +14,7 @@ define(function (require, exports, module) {
 
     var EventDispatcher     = brackets.getModule("utils/EventDispatcher"),
         LiveDevMultiBrowser = brackets.getModule("LiveDevelopment/LiveDevMultiBrowser"),
-        BlobUtils           = brackets.getModule("filesystem/impls/filer/BlobUtils"),
+        UrlCache           = brackets.getModule("filesystem/impls/filer/UrlCache"),
         BrambleEvents       = brackets.getModule("bramble/BrambleEvents"),
         Path                = brackets.getModule("filesystem/impls/filer/BracketsFiler").Path,
         BrambleStartupState = brackets.getModule("bramble/StartupState");
@@ -50,7 +50,7 @@ define(function (require, exports, module) {
     function resolveLinks(message) {
         var regex = new RegExp('\\"(blob:[^"]+)\\"', 'gm');
         var resolvedMessage = message.replace(regex, function(match, url) {
-            var path = BlobUtils.getFilename(url);
+            var path = UrlCache.getFilename(url);
 
             return ["\"", path, "\""].join("");
         });
@@ -144,8 +144,8 @@ define(function (require, exports, module) {
         var linkRegex = new RegExp('(\\\\?\\"?)(href|src|url|value)(\\\\?\\"?\\s?:?\\s?\\(?\\\\?\\"?)([^\\\\"\\),]+)(\\\\?\\"?)', 'gm');
         var resolvedMessage = message.replace(linkRegex, function(match, quote1, attr, seperator, value, quote2) {
             var path = value.charAt(0) === "/" ? value : Path.join(currentDir, value);
-            var url = BlobUtils.getUrl(path);
-            // If BlobUtils could not find the path in the filesystem, it
+            var url = UrlCache.getUrl(path);
+            // If UrlCache could not find the path in the filesystem, it
             // returns the path back unmodified. However, since we are
             // resolving the path above to an absolute path, we should not
             // modify the original value that was captured if a url mapping
@@ -204,7 +204,7 @@ define(function (require, exports, module) {
         var currentDoc = LiveDevMultiBrowser._getCurrentLiveDoc();
         var currentPath = path || (currentDoc && currentDoc.doc.file.fullPath);
 
-        return '<base href="' + BlobUtils.getBaseUrl() + '">\n' +
+        return '<base href="' + UrlCache.getBaseUrl() + '">\n' +
             "<script>\n" + PostMessageTransportRemote + "</script>\n" +
             "<script>\n" + XHRShim + "</script>\n" +
             MouseManager.getRemoteScript(currentPath) +
@@ -246,7 +246,7 @@ define(function (require, exports, module) {
             return;
         }
 
-        url = BlobUtils.getUrl(liveDoc.doc.file.fullPath);
+        url = UrlCache.getUrl(liveDoc.doc.file.fullPath);
 
         // Don't start rewriting a URL if it's already in process (prevents infinite loop)
         if(_pendingReloadUrl === url) {

@@ -33,7 +33,7 @@ define(function (require, exports, module) {
         Strings             = require("strings"),
         StringUtils         = require("utils/StringUtils"),
         FileSystem          = require("filesystem/FileSystem"),
-        BlobUtils           = require("filesystem/impls/filer/BlobUtils"),
+        UrlCache           = require("filesystem/impls/filer/UrlCache"),
         FileUtils           = require("file/FileUtils"),
         _                   = require("thirdparty/lodash"),
         Mustache            = require("thirdparty/mustache/mustache"),
@@ -48,7 +48,7 @@ define(function (require, exports, module) {
 
     // Get a Blob URL out of the cache
     function _getImageUrl(file) {
-        return BlobUtils.getUrl(file.fullPath);
+        return UrlCache.getUrl(file.fullPath);
     }
 
     // Use Vibrant.js to try and extract color info. This is possible for

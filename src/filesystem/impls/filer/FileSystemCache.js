@@ -7,7 +7,7 @@ define(function (require, exports, module) {
     var Content = require("filesystem/impls/filer/lib/content");
     var async = require("filesystem/impls/filer/lib/async");
     var BracketsFiler = require("filesystem/impls/filer/BracketsFiler");
-    var BlobUtils = require("filesystem/impls/filer/BlobUtils");
+    var UrlCache = require("filesystem/impls/filer/UrlCache");
     var Path = BracketsFiler.Path;
     var Transforms = require("filesystem/impls/filer/lib/transforms");
     var StartupState = require("bramble/StartupState");
@@ -21,7 +21,7 @@ define(function (require, exports, module) {
 
         function _getUrlAsync(filename, callback) {
             var decodedFilename = decodePath(filename);
-            var cachedUrl = BlobUtils.getUrl(filename);
+            var cachedUrl = UrlCache.getUrl(filename);
 
             // Skip HTML and CSS files, since we need to run a rewriter over them
             // before we can serve a Blob URL.
@@ -45,7 +45,7 @@ define(function (require, exports, module) {
                 }
 
                 var mime = Content.mimeFromExt(Path.extname(decodedFilename));
-                BlobUtils.createURL(filename, data, mime, function(err, url) {
+                UrlCache.createURL(filename, data, mime, function(err, url) {
                     if(err) {
                         callback(err);
                         return;
@@ -88,7 +88,7 @@ define(function (require, exports, module) {
             });
         }
 
-        BlobUtils.init(function() {
+        UrlCache.init(function() {
             _load(StartupState.project("root"), callback);
         });
     };
