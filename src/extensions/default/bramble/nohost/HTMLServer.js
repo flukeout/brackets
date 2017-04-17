@@ -36,19 +36,20 @@ define(function (require, exports, module) {
     HTMLServer.prototype = Object.create(BaseServer.prototype);
     HTMLServer.prototype.constructor = HTMLServer;
 
-    //Returns a pre-generated blob url based on path
     HTMLServer.prototype.pathToUrl = function(path) {
-        return path;
         return UrlCache.getUrl(path);
     };
-    //Returns a path based on blob url or filepath.  Returns null for any other URL.  
+
     HTMLServer.prototype.urlToPath = function(url) {
-        if(Content.isBlobURL(url) || Content.isRelativeURL(url)) {
-            return UrlCache.getFilename(url);
-        }
+        // TODO: figure out whether to keep this, since it won't work for CacheStorage provider...
+        //if(Content.isBlobURL(url) || Content.isRelativeURL(url)) {
+        //    return UrlCache.getFilename(url);
+        //}
 
         // Any other URL (http://...) so skip it, since we don't serve it.
-        return null;
+        //return null;
+
+        return UrlCache.getFilename(url);
     };
 
     HTMLServer.prototype.readyToServe = function () {
@@ -130,14 +131,19 @@ define(function (require, exports, module) {
                     callback(err);
                     return;
                 }
-                // We either serve raw HTML or a Blob URL depending on browser compatibility.
-                if(!_shouldUseBlobURL) {
-                    callback(null, html);
-                    return;
-                }
 
-                return UrlCache.createURL(path, html, "text/html", function(err) {
-                    callback(err, UrlCache.getUrl(path));
+                UrlCache.createURL(path, html, "text/html", function(err, url) {
+                    if(err) {
+                        callback(err);
+                    }
+
+                    // If the browser can't handle a Blob URL, and we have one, send back HTML
+                    if(Content.isBlobURL(url) && !_shouldUseBlobURL) {
+                        callback(null, html);
+                        return;
+                    }
+
+                    callback(null, url);
                 });
             });
         }

@@ -191,18 +191,18 @@ define(function (require, exports, module) {
                 }
 
                 if(stat.isFile) {
-                    UrlCache.rename(oldPath, newPath);
-                    BrambleEvents.triggerFileRenamed(oldPath, newPath);
-                    return callback();
-                }
+                    UrlCache.rename(oldPath, newPath, function(err) {
+                        if(err) {
+                            return callback(_mapError(err));
+                        }
 
-                // This is a dir, refresh our cache for child paths to get updated.
-                FileSystemCache.refresh(function(err){
-                    if(err){
-                      return callback(err);
-                    }
-                    callback();
-                });
+                        BrambleEvents.triggerFileRenamed(oldPath, newPath);
+                        callback();
+                    });
+                } else {
+                    // This is a dir, refresh our cache for child paths to get updated.
+                    FileSystemCache.refresh(callback);
+                }
             });
         }
 

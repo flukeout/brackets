@@ -180,6 +180,11 @@ define(function (require, exports, module) {
             };
         }
 
+        // We don't always need to rewrite, so return early if it's not needed.
+        if(!UrlCache.getShouldRewriteUrls()) {
+            return callback(null, html);
+        }
+
         var rewriter = new HTMLRewriter(path, html, server);
 
         function iterator(functionName) {

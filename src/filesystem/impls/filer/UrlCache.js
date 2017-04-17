@@ -23,6 +23,7 @@ define(function (require, exports, module) {
      */
     function BlobUrlProvider() {
         this.baseUrl = window.location.href;
+        this.shouldRewriteUrls = true;
     }
     BlobUrlProvider.prototype.init = function(callback) {
         this.paths  = {};
@@ -30,24 +31,31 @@ define(function (require, exports, module) {
 
         _.defer(callback);
     };
-    BlobUrlProvider.prototype.cache = function(filename, blob, type, callback) {
-        var url = URL.createObjectURL(blob);
+    BlobUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
+        var self = this;
 
         // If there's an existing entry for this, remove it.
-        this.remove(filename);
+        this.remove(filename, function(err) {
+            if(err) {
+                return callback(err);
+            }
 
-        // Now make a new set of cache entries
-        this.blobURLs[filename] = url;
-        this.paths[url] = filename;
+            // Now make a new set of cache entries
+            var url = URL.createObjectURL(blob);
 
-        _.defer(callback, null, url);
+            self.blobURLs[filename] = url;
+            self.paths[url] = filename;
+
+            callback(null, url);
+        });
     };
     BlobUrlProvider.prototype.remove = function(path, callback) {
+        var self = this;
         var removed = [];
 
         // If this is a dir path, look for other paths entries below it
-        Object.keys(this.blobURLs).forEach(function(key) {
-            var url = this.blobURLs[key];
+        Object.keys(self.blobURLs).forEach(function(key) {
+            var url = self.blobURLs[key];
 
             // The first time a file is written, we won't have
             // a stale cache entry to clean up.
@@ -60,8 +68,8 @@ define(function (require, exports, module) {
             if(key === path || key.indexOf(path + "/") === 0) {
                 removed.push(key);
 
-                delete this.blobURLs[key];
-                delete this.paths[url];
+                delete self.blobURLs[key];
+                delete self.paths[url];
 
                 // Delete the reference from memory
                 URL.revokeObjectURL(url);
@@ -105,8 +113,10 @@ define(function (require, exports, module) {
      */
     function CacheStorageUrlProvider() {
         this.baseUrl = window.location + "/dist/vfs" + StartupState.project("root") + "/";
+        this.shouldRewriteUrls = false;
     }
     CacheStorageUrlProvider.prototype.init = function(callback) {
+        var self = this;
         var cacheName = Path.join("vfs", StartupState.project("root"));
 
         this.urls = {};
@@ -115,12 +125,12 @@ define(function (require, exports, module) {
         // Delete existing cache for this root, and recreate empty cache.
         caches.delete(cacheName).then(function() {
             caches.open(cacheName).then(function(cache) {
-                this.cache = cache;
+                self.cache = cache;
                 callback();
             });
         }).catch(callback);
     };
-    CacheStorageUrlProvider.prototype.cache = function(filename, blob, type, callback) {
+    CacheStorageUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
         var response = new Response(blob, {
             status: 200,
             statusText: "Served from Thimble's Cache"
@@ -226,6 +236,17 @@ define(function (require, exports, module) {
 
 
 
+    function init(callback) {
+        // Prefer CacheStorage if we have access to it.
+        _provider = 'caches' in window ?
+            new CacheStorageUrlProvider() :
+            new BlobUrlProvider();
+
+        _provider = new BlobUrlProvider();
+
+
+        _provider.init(callback);
+    }
 
     function remove(path, callback) {
         path = fixPath(path);
@@ -236,6 +257,14 @@ define(function (require, exports, module) {
         oldPath = fixPath(oldPath);
         newPath = fixPath(newPath);
         _provider.rename(oldPath, newPath, callback);
+    }
+
+    function getBaseUrl() {
+        return _provider.baseUrl;
+    }
+
+    function getShouldRewriteUrls() {
+        return _provider.shouldRewriteUrls;
     }
 
     function getUrl(filename) {
@@ -251,24 +280,12 @@ define(function (require, exports, module) {
         path = fixPath(path);
         // TODO: confirm I need to get type passed in vs. figure it out here...
         var blob = new Blob([data], {type: type});
-        _provider.cache(path, blob, type, callback);
-    }
-
-    function init(callback) {
-        // Prefer CacheStorage if we have access to it.
-        _provider = 'caches' in window ?
-            new CacheStorageUrlProvider() :
-            new BlobUrlProvider();
-
-        _provider.init(callback);
-    }
-
-    function getBaseUrl() {
-        return _provider.baseUrl;
+        _provider.createURL(path, blob, type, callback);
     }
 
     exports.init = init;
     exports.getBaseUrl = getBaseUrl;
+    exports.getShouldRewriteUrls = getShouldRewriteUrls;
     exports.remove = remove;
     exports.rename = rename;
     exports.getUrl = getUrl;

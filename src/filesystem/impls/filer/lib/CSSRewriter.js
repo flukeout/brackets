@@ -89,10 +89,17 @@ define(function (require, exports, module) {
     };
 
     function rewrite(path, css, callback) {
-        var rewriter = new CSSRewriter(path, css);
-        setTimeout(function() {
-            rewriter.urls(callback);
-        }, 0);
+        // We don't always need to rewrite, so return early if it's not needed.
+        if(!UrlCache.getShouldRewriteUrls()) {
+            setTimeout(function() {
+                callback(null, css);
+            }, 0);
+        } else {
+            setTimeout(function() {
+                var rewriter = new CSSRewriter(path, css);
+                rewriter.urls(callback);
+            }, 0);
+        }
     }
 
     exports.rewrite = rewrite;
