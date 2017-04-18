@@ -19,16 +19,46 @@ define(function (require, exports, module) {
     }
 
     /**
+     * UrlProviderBase manages mappings between filesystem paths and URLs.
+     */
+    function UrlProviderBase() {
+        this.paths = {};
+        this.urls = {};
+    }
+    UrlProviderBase.prototype.getUrl = function(filename) {
+        // NOTE: make sure that we always return the filename unchanged if we
+        // don't have a cached URL.  Don't return a normalized, decoded version.
+        var url = this.urls[fixPath(filename)];
+
+        // We expect this to exist, if it doesn't,
+        // return path back unchanged
+        return url || filename;
+    };
+    UrlProviderBase.prototype.getFilename = function(url) {
+        var filename = this.paths[url];
+
+        // We expect this to exist, if it doesn't,
+        // return path back unchanged
+        if(!filename) {
+            return url;
+        }
+        return filename;
+    };
+
+
+    /**
      * BlobUrlProvider uses Blob URLs in browsers that don't support CacheStorage
      */
     function BlobUrlProvider() {
+        UrlProviderBase.call(this);
+
         this.baseUrl = window.location.href;
         this.shouldRewriteUrls = true;
     }
-    BlobUrlProvider.prototype.init = function(callback) {
-        this.paths  = {};
-        this.blobURLs = {};
+    BlobUrlProvider.prototype = Object.create(UrlProviderBase.prototype);
+    BlobUrlProvider.prototype.constructor = BlobUrlProvider;
 
+    BlobUrlProvider.prototype.init = function(callback) {
         _.defer(callback);
     };
     BlobUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
@@ -43,7 +73,7 @@ define(function (require, exports, module) {
             // Now make a new set of cache entries
             var url = URL.createObjectURL(blob);
 
-            self.blobURLs[filename] = url;
+            self.urls[filename] = url;
             self.paths[url] = filename;
 
             callback(null, url);
@@ -54,8 +84,8 @@ define(function (require, exports, module) {
         var removed = [];
 
         // If this is a dir path, look for other paths entries below it
-        Object.keys(self.blobURLs).forEach(function(key) {
-            var url = self.blobURLs[key];
+        Object.keys(self.urls).forEach(function(key) {
+            var url = self.urls[key];
 
             // The first time a file is written, we won't have
             // a stale cache entry to clean up.
@@ -68,7 +98,7 @@ define(function (require, exports, module) {
             if(key === path || key.indexOf(path + "/") === 0) {
                 removed.push(key);
 
-                delete self.blobURLs[key];
+                delete self.urls[key];
                 delete self.paths[url];
 
                 // Delete the reference from memory
@@ -79,32 +109,13 @@ define(function (require, exports, module) {
         _.defer(callback, null, removed);
     };
     BlobUrlProvider.prototype.rename = function(oldPath, newPath, callback) {
-        var url = this.blobURLs[oldPath];
+        var url = this.urls[oldPath];
 
-        this.blobURLs[newPath] = url;
+        this.urls[newPath] = url;
         this.paths[url] = newPath;
-        delete this.blobURLs[oldPath];
+        delete this.urls[oldPath];
 
         _.defer(callback);
-    };
-    // NOTE: make sure that we always return the filename unchanged if we
-    // don't have a cached URL.  Don't return a normalized, decoded version.
-    BlobUrlProvider.prototype.getUrl = function(filename) {
-        var url = this.blobURLs[filename];
-
-        // We expect this to exist, if it doesn't,
-        // return path back unchanged
-        return url || filename;
-    };
-    BlobUrlProvider.prototype.getFilename = function(url) {
-        var filename = this.paths[url];
-
-        // We expect this to exist, if it doesn't,
-        // return path back unchanged
-        if(!filename) {
-            return url;
-        }
-        return filename;
     };
 
 
@@ -112,19 +123,29 @@ define(function (require, exports, module) {
      * CacheStorageUrlProvider uses CacheStorage and Service Workers in compatible browsers.
      */
     function CacheStorageUrlProvider() {
-        this.baseUrl = window.location + "/dist/vfs" + StartupState.project("root") + "/";
+        UrlProviderBase.call(this);
+
+        // Construct an absolute URL for our project root
+        var prefix = brackets.env === "production" ? "/dist" : "/src";
+        var a = document.createElement("a");
+        this.generateVFSUrlForPath = function(path) {
+            a.href = prefix + "/vfs" + path;
+            return a.href;
+        };
+
+        this.baseUrl = this.generateVFSUrlForPath(StartupState.project("root")) + "/";
         this.shouldRewriteUrls = false;
     }
+    CacheStorageUrlProvider.prototype = Object.create(UrlProviderBase.prototype);
+    CacheStorageUrlProvider.prototype.constructor = CacheStorageUrlProvider;
+
     CacheStorageUrlProvider.prototype.init = function(callback) {
         var self = this;
-        var cacheName = Path.join("vfs", StartupState.project("root"));
-
-        this.urls = {};
-        this.paths = {};
+        var projectCacheName = Path.join("vfs", StartupState.project("root"));
 
         // Delete existing cache for this root, and recreate empty cache.
-        caches.delete(cacheName).then(function() {
-            caches.open(cacheName).then(function(cache) {
+        caches.delete(projectCacheName).then(function() {
+            caches.open(projectCacheName).then(function(cache) {
                 self.cache = cache;
                 callback();
             });
@@ -133,13 +154,13 @@ define(function (require, exports, module) {
     CacheStorageUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
         var response = new Response(blob, {
             status: 200,
-            statusText: "Served from Thimble's Cache"
+            statusText: "Served from Thimble's Offline Cache"
         });
 
         var headers = new Headers();
         headers.append("Content-Type", type);
 
-        var url = this.getUrl(filename);
+        var url = this.generateVFSUrlForPath(filename);
         var request = new Request(url, {
             method: "GET",
             headers: headers
@@ -202,7 +223,7 @@ define(function (require, exports, module) {
             var headers = new Headers();
             headers.append("Content-Type", type);
 
-            var newUrl = self.getUrl(newPath);
+            var newUrl = self.generateVFSUrlForPath(newPath);
             var request = new Request(newUrl, {
                 method: "GET",
                 headers: headers
@@ -219,21 +240,6 @@ define(function (require, exports, module) {
                 .catch(callback);
         }, callback);
     };
-    CacheStorageUrlProvider.prototype.getUrl = function(filename) {
-        var root = StartupState.project("root");
-        return this.baseUrl + filename.replace(root, "").replace(/^\/?/, "");
-    };
-    CacheStorageUrlProvider.prototype.getFilename = function(url) {
-        var filename = this.paths[url];
-
-        // We expect this to exist, if it doesn't,
-        // return path back unchanged
-        if(!filename) {
-            return url;
-        }
-        return filename;
-    };
-
 
 
     function init(callback) {
@@ -242,8 +248,8 @@ define(function (require, exports, module) {
             new CacheStorageUrlProvider() :
             new BlobUrlProvider();
 
+        // TODO: for testing, uncomment this, currently forcing blob urls.
         _provider = new BlobUrlProvider();
-
 
         _provider.init(callback);
     }
@@ -268,7 +274,7 @@ define(function (require, exports, module) {
     }
 
     function getUrl(filename) {
-        filename = fixPath(filename);
+        // NOTE: we intentionally don't call fixPath() on filename
         return _provider.getUrl(filename);
     }
 

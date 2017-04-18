@@ -23,9 +23,9 @@ define(function (require, exports, module) {
             var decodedFilename = decodePath(filename);
             var cachedUrl = UrlCache.getUrl(filename);
 
-            // Skip HTML and CSS files, since we need to run a rewriter over them
-            // before we can serve a Blob URL.
-            if(Content.needsRewriting(Path.extname(decodedFilename))) {
+            // For Blob URLs, skip HTML and CSS files, since we need to run a rewriter over them
+            // before we can serve.
+            if(Content.needsRewriting(Path.extname(decodedFilename)) && UrlCache.getShouldRewriteUrls()) {
                 return callback(null);
             }
 
@@ -88,8 +88,6 @@ define(function (require, exports, module) {
             });
         }
 
-        UrlCache.init(function() {
-            _load(StartupState.project("root"), callback);
-        });
+        _load(StartupState.project("root"), callback);
     };
 });

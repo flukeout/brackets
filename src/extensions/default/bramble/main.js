@@ -128,35 +128,43 @@ define(function (require, exports, module) {
         var root = BrambleStartupState.project("root");
         var filename = BrambleStartupState.project("filename");
 
-        ProjectManager.openProject(root).always(function () {
-            var deferred = new $.Deferred();
-            FileSystem.resolve(filename, function (err, file) {
-                if (!err) {
-                    var promise = CommandManager.execute(Commands.CMD_ADD_TO_WORKINGSET_AND_OPEN, { fullPath: file.fullPath });
-                    promise.then(deferred.resolve, deferred.reject);
-                } else {
-                    deferred.reject();
-                }
-            });
+        UrlCache.init(function(err) {
+            if(err) {
+                // TODO: what should we do here?  Means the CacheStorage failed.  Basically fatal.
+                console.error("[Bramble] unable to initialize URL cache", err);
+                return;
+            }
 
-            deferred.always(function() {
-                // Preload BlobURLs for all assets in the filesystem
-                FileSystemCache.refresh(function(err) {
-                    if(err) {
-                        // Possibly non-critical error, warn at least, but keep going.
-                        console.warn("[Bramble] unable to preload all filesystem Blob URLs", err);
+            ProjectManager.openProject(root).always(function () {
+                var deferred = new $.Deferred();
+                FileSystem.resolve(filename, function (err, file) {
+                    if (!err) {
+                        var promise = CommandManager.execute(Commands.CMD_ADD_TO_WORKINGSET_AND_OPEN, { fullPath: file.fullPath });
+                        promise.then(deferred.resolve, deferred.reject);
+                    } else {
+                        deferred.reject();
                     }
+                });
 
-                    // Signal that Brackets is loaded
-                    AppInit._dispatchReady(AppInit.APP_READY);
+                deferred.always(function() {
+                    // Preload BlobURLs for all assets in the filesystem
+                    FileSystemCache.refresh(function(err) {
+                        if(err) {
+                            // Possibly non-critical error, warn at least, but keep going.
+                            console.warn("[Bramble] unable to preload all filesystem Blob URLs", err);
+                        }
 
-                    // Setup the iframe browser and Blob URL live dev servers and
-                    // load the initial document into the preview.
-                    startLiveDev();
+                        // Signal that Brackets is loaded
+                        AppInit._dispatchReady(AppInit.APP_READY);
 
-                    BrambleCodeSnippets.init();
+                        // Setup the iframe browser and Blob URL live dev servers and
+                        // load the initial document into the preview.
+                        startLiveDev();
 
-                    UI.initUI(finishStartup);
+                        BrambleCodeSnippets.init();
+
+                        UI.initUI(finishStartup);
+                    });
                 });
             });
         });
