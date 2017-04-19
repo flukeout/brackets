@@ -122,12 +122,8 @@ define(function (require, exports, module) {
         RemoteEvents.loaded();
     }
 
-    // Normally, in Brackets proper, this happens in src/brackets.js. We've moved it here
-    // so that we can wait on the hosting app to tell us when to open the project.
-    function loadProject() {
-        var root = BrambleStartupState.project("root");
-        var filename = BrambleStartupState.project("filename");
-
+    // Fill our filesystem and URL caches before we start loading anything.
+    function setupCaches(callback) {
         UrlCache.init(function(err) {
             if(err) {
                 // TODO: what should we do here?  Means the CacheStorage failed.  Basically fatal.
@@ -135,37 +131,46 @@ define(function (require, exports, module) {
                 return;
             }
 
-            ProjectManager.openProject(root).always(function () {
-                var deferred = new $.Deferred();
-                FileSystem.resolve(filename, function (err, file) {
-                    if (!err) {
-                        var promise = CommandManager.execute(Commands.CMD_ADD_TO_WORKINGSET_AND_OPEN, { fullPath: file.fullPath });
-                        promise.then(deferred.resolve, deferred.reject);
-                    } else {
-                        deferred.reject();
-                    }
-                });
+            // Preload BlobURLs for all assets in the filesystem
+            FileSystemCache.refresh(function(err) {
+                if(err) {
+                    // Possibly non-critical error, warn at least, but keep going.
+                    console.warn("[Bramble] unable to preload all filesystem Blob URLs", err);
+                }
 
-                deferred.always(function() {
-                    // Preload BlobURLs for all assets in the filesystem
-                    FileSystemCache.refresh(function(err) {
-                        if(err) {
-                            // Possibly non-critical error, warn at least, but keep going.
-                            console.warn("[Bramble] unable to preload all filesystem Blob URLs", err);
-                        }
+                callback();
+            });
+        });
+    }
 
-                        // Signal that Brackets is loaded
-                        AppInit._dispatchReady(AppInit.APP_READY);
+    // Normally, in Brackets proper, this happens in src/brackets.js. We've moved it here
+    // so that we can wait on the hosting app to tell us when to open the project.
+    function loadProject() {
+        var root = BrambleStartupState.project("root");
+        var filename = BrambleStartupState.project("filename");
 
-                        // Setup the iframe browser and Blob URL live dev servers and
-                        // load the initial document into the preview.
-                        startLiveDev();
+        ProjectManager.openProject(root).always(function () {
+            var deferred = new $.Deferred();
+            FileSystem.resolve(filename, function (err, file) {
+                if (!err) {
+                    var promise = CommandManager.execute(Commands.CMD_ADD_TO_WORKINGSET_AND_OPEN, { fullPath: file.fullPath });
+                    promise.then(deferred.resolve, deferred.reject);
+                } else {
+                    deferred.reject();
+                }
+            });
 
-                        BrambleCodeSnippets.init();
+            deferred.always(function() {
+                // Signal that Brackets is loaded
+                AppInit._dispatchReady(AppInit.APP_READY);
 
-                        UI.initUI(finishStartup);
-                    });
-                });
+                // Setup the iframe browser and Blob URL live dev servers and
+                // load the initial document into the preview.
+                startLiveDev();
+
+                BrambleCodeSnippets.init();
+
+                UI.initUI(finishStartup);
             });
         });
     }
@@ -205,7 +210,7 @@ define(function (require, exports, module) {
         });
 
         RemoteEvents.start();
-        loadProject();
+        setupCaches(loadProject);
     }
 
     // Signal to the hosting app that we're ready to mount a filesystem, and listen for
