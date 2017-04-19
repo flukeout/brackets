@@ -125,14 +125,15 @@ define(function (require, exports, module) {
     function CacheStorageUrlProvider() {
         UrlProviderBase.call(this);
 
-        // Construct an absolute URL for our project root
+        // We use cache URLs like https://<origin>/dist/vfs/project/root/filename.ext
         var prefix = brackets.env === "production" ? "/dist" : "/src";
-        var a = document.createElement("a");
         this.generateVFSUrlForPath = function(path) {
+            var a = document.createElement("a");
             a.href = prefix + "/vfs" + path;
             return a.href;
         };
 
+        this.projectCacheName = Path.join("vfs", StartupState.project("root"));
         this.baseUrl = this.generateVFSUrlForPath(StartupState.project("root")) + "/";
         this.shouldRewriteUrls = false;
     }
@@ -140,16 +141,17 @@ define(function (require, exports, module) {
     CacheStorageUrlProvider.prototype.constructor = CacheStorageUrlProvider;
 
     CacheStorageUrlProvider.prototype.init = function(callback) {
-        var self = this;
-        var projectCacheName = Path.join("vfs", StartupState.project("root"));
+        var projectCacheName = this.projectCacheName;
 
         // Delete existing cache for this root, and recreate empty cache.
-        caches.delete(projectCacheName).then(function() {
-            caches.open(projectCacheName).then(function(cache) {
-                self.cache = cache;
-                callback();
-            });
-        }).catch(callback);
+        window.caches
+            .delete(projectCacheName)
+            .then(function() {
+                caches.open(projectCacheName).then(function() {
+                    callback();
+                });
+            })
+            .catch(callback);
     };
     CacheStorageUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
         var response = new Response(blob, {
@@ -169,16 +171,22 @@ define(function (require, exports, module) {
         this.urls[filename] = url;
         this.paths[url] = filename;
 
-        this.cache.put(request, response).then(function() {
-            callback(null, url);
-        }, callback);
+        window.caches
+            .open(this.projectCacheName)
+            .then(function(cache) {
+                cache.put(request, response).then(function() {
+                    callback(null, url);
+                });
+            })
+            .catch(callback);
     };
     CacheStorageUrlProvider.prototype.remove = function(path, callback) {
+        var self = this;
         var removed = [];
 
         function _maybeRemove(pathPart) {
             var deferred = new $.Deferred();
-            var url = this.urls[pathPart];
+            var url = self.urls[pathPart];
 
             // The first time a file is written, we won't have
             // a stale cache entry to clean up.
@@ -191,10 +199,15 @@ define(function (require, exports, module) {
             if(pathPart === path || pathPart.indexOf(path + "/") === 0) {
                 removed.push(pathPart);
 
-                delete this.urls[pathPart];
-                delete this.paths[url];
+                delete self.urls[pathPart];
+                delete self.paths[url];
 
-                this.cache.delete(url).then(deferred.resolve, deferred.reject);
+                window.caches
+                    .open(self.projectCacheName)
+                    .then(function(cache) {
+                        cache.delete(url).then(deferred.resolve);
+                    })
+                    .catch(deferred.reject);
             } else {
                 // Nothing to be done for this path, skip.
                 deferred.resolve();
@@ -204,7 +217,7 @@ define(function (require, exports, module) {
         }
 
         // If this is a dir path, look for other paths entries below it
-        Async.doSequentially(Object.keys(this.urls), _maybeRemove, false)
+        Async.doSequentially(Object.keys(self.urls), _maybeRemove, false)
              .done(function() {
                  callback(null, removed);
              })
@@ -214,31 +227,34 @@ define(function (require, exports, module) {
     };
     CacheStorageUrlProvider.prototype.rename = function(oldPath, newPath, callback) {
         var self = this;
-        var oldUrl = this.urls[oldPath];
+        var oldUrl = self.urls[oldPath];
 
         // Get the existing Response, and re-cache it with a new Request
         // which uses the correct path/url.
-        self.cache.match(oldUrl).then(function(response) {
-            var type = Content.mimeFromExt(Path.extname(newPath));
-            var headers = new Headers();
-            headers.append("Content-Type", type);
+        window.caches
+            .open(self.projectCacheName)
+            .then(function(cache) {
+                cache.match(oldUrl).then(function(response) {
+                    var type = Content.mimeFromExt(Path.extname(newPath));
+                    var headers = new Headers();
+                    headers.append("Content-Type", type);
 
-            var newUrl = self.generateVFSUrlForPath(newPath);
-            var request = new Request(newUrl, {
-                method: "GET",
-                headers: headers
-            });
+                    var newUrl = self.generateVFSUrlForPath(newPath);
+                    var request = new Request(newUrl, {
+                        method: "GET",
+                        headers: headers
+                    });
 
-            this.urls[newPath] = newUrl;
-            this.paths[newUrl] = newPath;
+                    self.urls[newPath] = newUrl;
+                    self.paths[newUrl] = newPath;
 
-            // TODO: confirm I need to clone the response.
-            self.cache.put(request, response.clone())
-                .then(function() {
-                    self.remove(oldPath, callback);
-                })
-                .catch(callback);
-        }, callback);
+                    // TODO: confirm I need to clone the response.
+                    cache.put(request, response.clone()).then(function() {
+                        self.remove(oldPath, callback);
+                    });
+                });
+            })
+            .catch(callback);
     };
 
 
@@ -249,7 +265,7 @@ define(function (require, exports, module) {
             new BlobUrlProvider();
 
         // TODO: for testing, uncomment this, currently forcing blob urls.
-        _provider = new BlobUrlProvider();
+        //_provider = new BlobUrlProvider();
 
         _provider.init(callback);
     }
