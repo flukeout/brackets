@@ -494,7 +494,7 @@ define(function (require, exports, module) {
             imgPath = tokenString;
         }
         // Use this filename if this is a path with a known image extension.
-        // We'll already have this image file's Blob URL cached in UrlCache.
+        // We'll already have this image file's URL cached in UrlCache.
         else if (!hasProtocol && isImage) {
             imgPath = UrlCache.getUrl(Path.join(FileUtils.getDirectoryPath(docPath), tokenString));
         }
