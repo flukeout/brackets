@@ -46,7 +46,7 @@ define(function (require, exports, module) {
 
     var _slice = Function.prototype.call.bind(Array.prototype.slice);
 
-    // Get a Blob URL out of the cache
+    // Get a URL out of the cache
     function _getImageUrl(file) {
         return UrlCache.getUrl(file.fullPath);
     }
