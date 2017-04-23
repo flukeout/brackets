@@ -4,6 +4,7 @@
 define(function (require, exports, module) {
     "use strict";
 
+    var UrlParams = require("utils/UrlParams").UrlParams;
     var StartupState = require("bramble/StartupState");
     var _ = require("thirdparty/lodash");
     var Async = require("utils/Async");
@@ -13,6 +14,17 @@ define(function (require, exports, module) {
     var decodePath = FilerUtils.decodePath;
 
     var _provider;
+
+    /**
+     * Parses URL and look for the GET parameter "cacheType"
+     * if cacheType=blob, Blob URLs are used, cacheType=cacheStorage uses Cache Storage.
+     * Not specifying a cacheType allows the default to happen.
+     */
+    function getCacheType() {
+        var params = new UrlParams();
+        params.parse();
+        return params.get("cacheType") || "";
+    }
 
     function fixPath(path) {
         return Path.normalize(decodePath(path));
@@ -259,13 +271,24 @@ define(function (require, exports, module) {
 
 
     function init(callback) {
-        // Prefer CacheStorage if we have access to it.
-        _provider = 'caches' in window ?
-            new CacheStorageUrlProvider() :
-            new BlobUrlProvider();
-
-        // TODO: for testing, uncomment this, currently forcing blob urls.
-        //_provider = new BlobUrlProvider();
+        // Allow overriding the cache type via cacheType=blob or cacheType=cacheStorage
+        var cacheTypeOverride = getCacheType();
+        switch(cacheTypeOverride) {
+        case "blob":
+            console.log("[Bramble] Override cache provider: using Blob URLs");
+            _provider = new BlobUrlProvider();
+            break;
+        case "cacheStorage":
+            console.log("[Bramble] Override cache provider: using Cache Storage URLs");
+            _provider = new CacheStorageUrlProvider();
+            break;
+        default:
+            // Prefer CacheStorage if we have access to it.
+            _provider = "caches" in window ?
+                new CacheStorageUrlProvider() :
+                new BlobUrlProvider();
+            break;
+        }
 
         _provider.init(callback);
     }
