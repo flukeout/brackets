@@ -18,6 +18,7 @@ define(function (require, exports, module) {
             image.reset();
             $saveBtn.prop("disabled", true);
             $resetBtn.prop("disabled", true);
+            $(".image-filters .active-filter").removeClass("active-filter");
         });
 
         $saveBtn.click(function() {
@@ -71,6 +72,11 @@ define(function (require, exports, module) {
         $(".btn-glowing-sun").click(function() {
             applyFilterFn("glowingSun");
         });
+
+        $(".image-filters").on("click",".btn",function(){
+          $(".image-filters .active-filter").removeClass("active-filter");
+          $(this).addClass("active-filter");
+        })
     }
 
     exports.load = function(imageElement, imagePath) {
