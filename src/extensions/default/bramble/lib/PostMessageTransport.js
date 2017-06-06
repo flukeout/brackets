@@ -25,9 +25,7 @@ define(function (require, exports, module) {
     var MouseManager = require("lib/MouseManager");
     var LinkManager = require("lib/LinkManager");
     var ConsoleManager = require("lib/ConsoleManager");
-
-    // An XHR shim will be injected as well to allow XHR to the file system
-    var XHRShim = require("text!lib/xhr/XHRShim.js");
+    var XHRManager = require("lib/XHRManager");
 
     EventDispatcher.makeEventDispatcher(module.exports);
 
@@ -88,6 +86,12 @@ define(function (require, exports, module) {
                 return;
             }
 
+            // Deal with XHR requests, if we're hijacking them.
+            if(XHRManager.isXHRRequest(msgObj.message)) {
+                XHRManager.handleXHRRequest(msgObj.data);
+                return;
+            }
+
             if(msgObj.message) {
                 msgObj.message = resolveLinks(msgObj.message);
             }
@@ -97,7 +101,7 @@ define(function (require, exports, module) {
                 return;
             }
 
-            // Trigger message event
+            // Not one of our custom events, re-trigger message event to LiveDev
             module.exports.trigger("message", [connId, msgObj.message]);
         } else if (msgObj.type === "connect") {
             Browser.setListener();
@@ -206,7 +210,7 @@ define(function (require, exports, module) {
 
         return '<base href="' + UrlCache.getBaseUrl() + '">\n' +
             "<script>\n" + PostMessageTransportRemote + "</script>\n" +
-            "<script>\n" + XHRShim + "</script>\n" +
+            XHRManager.getRemoteScript() +
             MouseManager.getRemoteScript(currentPath) +
             LinkManager.getRemoteScript() +
             ConsoleManager.getRemoteScript();

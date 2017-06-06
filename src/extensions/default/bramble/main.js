@@ -29,8 +29,6 @@ define(function (require, exports, module) {
         Path                 = brackets.getModule("filesystem/impls/filer/BracketsFiler").Path,
         FileSystemCache      = brackets.getModule("filesystem/impls/filer/FileSystemCache"),
         UrlCache            = brackets.getModule("filesystem/impls/filer/UrlCache"),
-        XHRHandler           = require("lib/xhr/XHRHandler"),
-        Theme                = require("lib/Theme"),
         RemoteCommandHandler = require("lib/RemoteCommandHandler"),
         RemoteEvents         = require("lib/RemoteEvents");
 
@@ -42,25 +40,6 @@ define(function (require, exports, module) {
             return data || {};
         } catch(err) {
             return false;
-        }
-    }
-
-    function handleMessage(message) {
-        var currentDocUrl = Browser.getBrowserIframe().src;
-        var currentDocPath = UrlCache.getFilename(currentDocUrl);
-        var currentDir = currentDocPath !== currentDocUrl ? Path.dirname(currentDocPath) : currentDocPath;
-        var requestedPath;
-
-        try {
-            message = parseData(message);
-        } catch(ex) {
-            console.error("[Brackets Browser LiveDev Error] Cannot handle message ", message);
-            return;
-        }
-
-        if(message.method === "XMLHttpRequest") {
-            requestedPath = Path.resolve(currentDir, Path.normalize(message.path));
-            XHRHandler.handleRequest(requestedPath);
         }
     }
 
@@ -101,22 +80,6 @@ define(function (require, exports, module) {
         PreferencesManager.set("tabSize", 2);
         // Don't warn about opening file in split view (we steal second view for iframe)
         PreferencesManager.setViewState("splitview.multipane-info", true);
-
-        window.addEventListener("message", function(e) {
-            var data = parseData(e.data);
-            if(!data) {
-                return;
-            }
-            // TODO: this needs to get done better -- xhr handing from preview.
-            var type = data.type;
-            if(type === "message") {
-                handleMessage(data.message);
-                return;
-            } else if(type === "themeToggle") {
-                Theme.toggle(data.theme);
-                return;
-            }
-        }, false);
 
         // We're all done loading and can pass startup state info back to the host app.
         RemoteEvents.loaded();
