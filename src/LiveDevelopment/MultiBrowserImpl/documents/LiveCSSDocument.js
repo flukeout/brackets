@@ -50,6 +50,20 @@ define(function LiveCSSDocumentModule(require, exports, module) {
         LiveDocument    = require("LiveDevelopment/MultiBrowserImpl/documents/LiveDocument"),
         PathUtils       = require("thirdparty/path-utils/path-utils");
 
+    // XXXBramble: We need to be able to flip between URLs and Paths
+    var UrlCache        = require("filesystem/impls/filer/UrlCache");
+
+    // Switch all root URLs to paths
+    function normalizeRoots(roots) {
+        var normalized = [];
+
+        roots.forEach(function(root) {
+           normalized.push(UrlCache.getFilename(root.toString()));
+        });
+
+        return normalized;
+    }
+
     /**
      * @constructor
      * @see LiveDocument
@@ -63,6 +77,8 @@ define(function LiveCSSDocumentModule(require, exports, module) {
      */
     var LiveCSSDocument = function LiveCSSDocument(protocol, urlResolver, doc, editor, roots) {
         LiveDocument.apply(this, arguments);
+
+        this.roots = normalizeRoots(this.roots);
 
         // Add a ref to the doc since we're listening for change events
         this.doc.addRef();
