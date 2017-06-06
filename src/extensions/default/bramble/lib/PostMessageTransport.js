@@ -14,7 +14,7 @@ define(function (require, exports, module) {
 
     var EventDispatcher     = brackets.getModule("utils/EventDispatcher"),
         LiveDevMultiBrowser = brackets.getModule("LiveDevelopment/LiveDevMultiBrowser"),
-        UrlCache           = brackets.getModule("filesystem/impls/filer/UrlCache"),
+        UrlCache            = brackets.getModule("filesystem/impls/filer/UrlCache"),
         BrambleEvents       = brackets.getModule("bramble/BrambleEvents"),
         Path                = brackets.getModule("filesystem/impls/filer/BracketsFiler").Path,
         BrambleStartupState = brackets.getModule("bramble/StartupState");
@@ -39,7 +39,7 @@ define(function (require, exports, module) {
         }
     }
 
-    // This function maps all blob urls in a message to filesystem
+    // This function maps all urls in a message to filesystem
     // paths based on the urls that are cached, so that Brackets can work
     // with paths vs. urls
     // For e.g. a message like `{"stylesheets": {"blob://http://url" :
