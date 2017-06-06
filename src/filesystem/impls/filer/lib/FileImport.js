@@ -8,7 +8,8 @@ define(function (require, exports, module) {
     var LegacyFileImport    = require("filesystem/impls/filer/lib/LegacyFileImport"),
         WebKitFileImport    = require("filesystem/impls/filer/lib/WebKitFileImport"),
         FileSystemCache     = require("filesystem/impls/filer/FileSystemCache"),
-        BrambleStartupState = brackets.getModule("bramble/StartupState");
+        BrambleStartupState = require("bramble/StartupState"),
+        LiveDevMultiBrowser = brackets.getModule("LiveDevelopment/LiveDevMultiBrowser");
 
     // 3MB size limit for imported files. If you change this, also change the
     // error message we generate in rejectImport() below!
@@ -70,7 +71,10 @@ define(function (require, exports, module) {
             if(err) {
                 return callback(err);
             }
-            FileSystemCache.refresh(callback);
+            FileSystemCache.refresh(function() {
+                LiveDevMultiBrowser.reload();
+                callback();
+            });
         });
     };
 });
