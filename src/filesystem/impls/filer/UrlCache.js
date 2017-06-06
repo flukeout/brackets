@@ -317,6 +317,18 @@ define(function (require, exports, module) {
         return _provider.getUrl(filename);
     }
 
+    // Get a DownloadUrl suitable for the DataTransfer object to allow dragging
+    // files out of the browser to OS. See https://www.thecssninja.com/html5/gmail-dragout.
+    // Only works in Chrome at present, similar to how attachments in gmail work.
+    function getDownloadUrl(filename) {
+        var blobUrl = getUrl(filename);
+        var basename = Path.basename(filename);
+        var ext = Path.extname(filename);
+        var mimeType = Content.mimeFromExt(ext);
+
+        return mimeType + ":" + basename + ":" + blobUrl;
+    }
+
     function getFilename(url) {
         return _provider.getFilename(url);
     }
@@ -334,6 +346,7 @@ define(function (require, exports, module) {
     exports.remove = remove;
     exports.rename = rename;
     exports.getUrl = getUrl;
+    exports.getDownloadUrl = getDownloadUrl;
     exports.getFilename = getFilename;
     exports.createURL = createURL;
 });
