@@ -41,14 +41,6 @@ define(function (require, exports, module) {
     };
 
     HTMLServer.prototype.urlToPath = function(url) {
-        // TODO: figure out whether to keep this, since it won't work for CacheStorage provider...
-        //if(Content.isBlobURL(url) || Content.isRelativeURL(url)) {
-        //    return UrlCache.getFilename(url);
-        //}
-
-        // Any other URL (http://...) so skip it, since we don't serve it.
-        //return null;
-
         return UrlCache.getFilename(url);
     };
 

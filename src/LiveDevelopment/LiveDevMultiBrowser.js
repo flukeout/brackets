@@ -296,7 +296,8 @@ define(function (require, exports, module) {
      */
     function _styleSheetAdded(event, url, roots) {
         var path = _server && _server.urlToPath(url),
-            alreadyAdded = !!_relatedDocuments[url];
+            alreadyAdded = !!_relatedDocuments[url],
+            docPromise;
 
         // path may be null if loading an external stylesheet.
         // Also, the stylesheet may already exist and be reported as added twice
@@ -306,7 +307,13 @@ define(function (require, exports, module) {
             return;
         }
 
-        var docPromise = DocumentManager.getDocumentForPath(path);
+        try {
+            // Don't blow-up if the file is missing (deleted) but we still think we have it.
+            docPromise = DocumentManager.getDocumentForPath(path);
+        } catch(e) {
+            console.log("[Bramble] No stylesheet found for path, skipping", path);
+            return;
+        }
 
         docPromise.done(function (doc) {
             if ((_classForDocument(doc) === LiveCSSDocument) &&
