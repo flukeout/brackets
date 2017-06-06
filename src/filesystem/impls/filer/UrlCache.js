@@ -335,7 +335,6 @@ define(function (require, exports, module) {
 
     function createURL(path, data, type, callback) {
         path = fixPath(path);
-        // TODO: confirm I need to get type passed in vs. figure it out here...
         var blob = new Blob([data], {type: type});
         _provider.createURL(path, blob, type, callback);
     }

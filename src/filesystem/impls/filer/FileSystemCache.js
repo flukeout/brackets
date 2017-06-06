@@ -29,15 +29,6 @@ define(function (require, exports, module) {
                 return callback(null);
             }
 
-            // If we get a Blob URL (i.e., not the filename back) and get it
-            // synchronously, run the callback and yield to main thread.
-//            if(cachedUrl !== filename) {
-//                setTimeout(function() {
-//                    callback(null, cachedUrl);
-//                }, 0);
-//                return;
-//            }
-
             fs.readFile(decodedFilename, null, function(err, data) {
                 if(err) {
                     callback(err);
