@@ -260,7 +260,6 @@ define(function (require, exports, module) {
                     self.urls[newPath] = newUrl;
                     self.paths[newUrl] = newPath;
 
-                    // TODO: confirm I need to clone the response.
                     cache.put(request, response.clone()).then(function() {
                         self.remove(oldPath, callback);
                     });
