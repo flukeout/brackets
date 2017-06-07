@@ -61,11 +61,20 @@ define(function (require, exports, module) {
     /**
      * BlobUrlProvider uses Blob URLs in browsers that don't support CacheStorage
      */
-    function BlobUrlProvider() {
+    function BlobUrlProvider(warn) {
         UrlProviderBase.call(this);
 
         this.baseUrl = window.location.href;
         this.shouldRewriteUrls = true;
+
+        // Warn that some network features won't work fully
+        if(warn) {
+            console.info("[Bramble] Your browser doesn't support Service Workers and/or CacheStorage. "  +
+                         "Some preview features may not work correctly (e.g., dynamic script loading). " +
+                         "Consider using a browser that does, see: "                                     +
+                         "https://jakearchibald.github.io/isserviceworkerready");
+        }
+
     }
     BlobUrlProvider.prototype = Object.create(UrlProviderBase.prototype);
     BlobUrlProvider.prototype.constructor = BlobUrlProvider;
@@ -274,18 +283,18 @@ define(function (require, exports, module) {
         var cacheTypeOverride = getCacheType();
         switch(cacheTypeOverride) {
         case "blob":
-            console.log("[Bramble] Override cache provider: using Blob URLs");
+            console.info("[Bramble] Override cache provider: using Blob URLs");
             _provider = new BlobUrlProvider();
             break;
         case "cacheStorage":
-            console.log("[Bramble] Override cache provider: using Cache Storage URLs");
+            console.info("[Bramble] Override cache provider: using Cache Storage URLs");
             _provider = new CacheStorageUrlProvider();
             break;
         default:
-            // Prefer CacheStorage if we have access to it.
-            _provider = "caches" in window ?
+            // Prefer CacheStorage if we have full support, but fallback to Blob URLs
+            _provider = ("caches" in window && "serviceWorker" in window.navigator) ?
                 new CacheStorageUrlProvider() :
-                new BlobUrlProvider();
+                new BlobUrlProvider(true);
             break;
         }
 
