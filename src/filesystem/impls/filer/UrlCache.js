@@ -69,7 +69,7 @@ define(function (require, exports, module) {
 
         // Warn that some network features won't work fully
         if(warn) {
-            console.info("[Bramble] Your browser doesn't support Service Workers and/or CacheStorage. "  +
+            console.warn("[Bramble] Your browser doesn't support Service Workers and/or CacheStorage. "  +
                          "Some preview features may not work correctly (e.g., dynamic script loading). " +
                          "Consider using a browser that does, see: "                                     +
                          "https://jakearchibald.github.io/isserviceworkerready");
