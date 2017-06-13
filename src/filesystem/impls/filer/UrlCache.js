@@ -82,6 +82,17 @@ define(function (require, exports, module) {
     BlobUrlProvider.prototype.init = function(callback) {
         _.defer(callback);
     };
+    BlobUrlProvider.prototype.clear = function(callback) {
+        var urls = Object.keys(this.urls);
+        urls.forEach(function(url) {
+            URL.revokeObjectURL(url);
+        });
+
+        this.urls = {};
+        this.paths = {};
+
+        _.defer(callback);
+    };
     BlobUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
         var self = this;
 
@@ -161,18 +172,24 @@ define(function (require, exports, module) {
     CacheStorageUrlProvider.prototype = Object.create(UrlProviderBase.prototype);
     CacheStorageUrlProvider.prototype.constructor = CacheStorageUrlProvider;
 
-    CacheStorageUrlProvider.prototype.init = function(callback) {
-        var projectCacheName = this.projectCacheName;
+    CacheStorageUrlProvider.prototype.clear = function(callback) {
+        var self = this;
+        var projectCacheName = self.projectCacheName;
 
         // Delete existing cache for this root, and recreate empty cache.
         window.caches
             .delete(projectCacheName)
             .then(function() {
                 caches.open(projectCacheName).then(function() {
+                    self.paths = {};
+                    self.urls = {};
                     callback();
                 });
             })
             .catch(callback);
+    }
+    CacheStorageUrlProvider.prototype.init = function(callback) {
+        this.clear(callback);
     };
     CacheStorageUrlProvider.prototype.createURL = function(filename, blob, type, callback) {
         var response = new Response(blob, {
@@ -312,6 +329,10 @@ define(function (require, exports, module) {
         _provider.rename(oldPath, newPath, callback);
     }
 
+    function clear(callback) {
+        _provider.clear(callback);
+    }
+
     function getBaseUrl() {
         return _provider.baseUrl;
     }
@@ -352,6 +373,7 @@ define(function (require, exports, module) {
     exports.getShouldRewriteUrls = getShouldRewriteUrls;
     exports.remove = remove;
     exports.rename = rename;
+    exports.clear = clear;
     exports.getUrl = getUrl;
     exports.getDownloadUrl = getDownloadUrl;
     exports.getFilename = getFilename;
