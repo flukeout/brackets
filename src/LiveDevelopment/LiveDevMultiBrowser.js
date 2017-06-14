@@ -318,7 +318,15 @@ define(function (require, exports, module) {
         docPromise.done(function (doc) {
             if ((_classForDocument(doc) === LiveCSSDocument) &&
                     (!_liveDocument || (doc !== _liveDocument.doc))) {
-                var liveDoc = _createLiveDocument(doc, doc._masterEditor, roots);
+
+                // XXXBramble: Avoid recreating the live doc if we already have it.
+                var liveDoc = _server.get(path);
+                if(liveDoc) {
+                    return;
+                }
+
+                // We don't, so create it and add to the server.
+                liveDoc = _createLiveDocument(doc, doc._masterEditor, roots);
                 if (liveDoc) {
                     _server.add(liveDoc);
                     _relatedDocuments[doc.url] = liveDoc;
