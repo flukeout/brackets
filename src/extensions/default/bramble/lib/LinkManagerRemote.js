@@ -16,11 +16,15 @@
         }
 
         var pathNav = !(/\:?\/\//.test(url));
+
+        // Deal with <a href="#"> links (ignore them)
+        var ignoreAnchor = /^\s*#\s*$/.test(url);
+
         // `fragmentId` handles the special case of fragment ids in the
         // same html page in preview mode (not tutorial mode)
-        var fragmentId = /^\s*#/.test(url);
+        var fragmentId = /^\s*#.+/.test(url);
 
-        if(fragmentId) {
+        if(!ignoreAnchor && fragmentId) {
             element = document.querySelector(url) || document.getElementsByName(url.slice(1));
             if(element) {
                 element = element[0] || element;
@@ -39,9 +43,12 @@
         // Intercept clicks to <a> in the document.
         var links = document.links;
         var len = links.length;
+        var link;
 
         for(var i=0; i<len; i++) {
-            links[i].onclick = handleClick;
+            link = links[i];
+            // Use an existing onclick handler if it exists, or provide our own.
+            link.onclick = link.onclick || handleClick;
         }
     }, false);
 }());
