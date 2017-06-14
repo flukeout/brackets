@@ -3,9 +3,13 @@
 (function() {
     "use strict";
 
+    var baseUrl;
+
     function handleClick(e) {
         var anchor = e.currentTarget;
         var url = anchor.getAttribute("href");
+        // Strip base URL if necessary
+        url = url.replace(baseUrl, "");
         var element;
 
         // For local paths vs. absolute URLs, try to open the right file.
@@ -16,7 +20,7 @@
         }
 
         var pathNav = !(/\:?\/\//.test(url));
-
+\
         // Deal with <a href="#"> links (ignore them)
         var ignoreAnchor = /^\s*#\s*$/.test(url);
 
@@ -40,6 +44,10 @@
     }
 
     addEventListener("DOMContentLoaded", function init() {
+        // Record base href so we can strip it from absolute URLs to filesystem paths (service worker).
+        var baseElem = document.querySelector("base");
+        baseUrl = baseElem ? baseElem.getAttribute("href") : "";
+
         // Intercept clicks to <a> in the document.
         var links = document.links;
         var len = links.length;
