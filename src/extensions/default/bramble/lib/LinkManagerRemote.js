@@ -12,6 +12,11 @@
         url = url.replace(baseUrl, "");
         var element;
 
+        // Deal with <a href=""> and ignore
+        if(!(url && url.length)) {
+            return false;
+        }
+
         // For local paths vs. absolute URLs, try to open the right file.
         // Special case (i.e., pass through) some common, non-http(s) protocol
         // schemes so they work as expected.
@@ -20,7 +25,7 @@
         }
 
         var pathNav = !(/\:?\/\//.test(url));
-\
+
         // Deal with <a href="#"> links (ignore them)
         var ignoreAnchor = /^\s*#\s*$/.test(url);
 
