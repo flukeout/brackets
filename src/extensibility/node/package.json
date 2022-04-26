@@ -5,7 +5,7 @@
   "dependencies": {
     "decompress-zip": "0.0.2",
     "semver": "2.x",
-    "fs-extra": "0.6.x",
+    "fs-extra": "0.30.0",
     "async": "0.2.x",
     "request": "2.27.x",
     "temp": "~0.6.0"
