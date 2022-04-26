@@ -3,7 +3,7 @@
   "description": "Used in the management of Brackets extensions",
   "version": "1.2.0",
   "dependencies": {
-    "decompress-zip": "0.0.2",
+    "decompress-zip": "0.3.3",
     "semver": "2.x",
     "fs-extra": "0.6.x",
     "async": "0.2.x",
