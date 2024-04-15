@@ -2,6 +2,6 @@
   "name": "brackets-livedev-multibrowser-server",
   "dependencies": {
     "ws": "~0.4.31",
-    "lodash": "~2.4.1"
+    "lodash": "~4.17.17"
   }
 }
